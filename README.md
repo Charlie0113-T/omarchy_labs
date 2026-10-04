@@ -7,110 +7,136 @@
 
 # Omarchy Lab
 
-**面向 Linux / Omarchy 的三模式性能测试：硬件、AI Agent 编程、日常多任务**
+**A three-mode benchmark for Linux / Omarchy: hardware, AI agent coding, and everyday multitasking**
 
-单文件 `.pyz` · 仅依赖 Python 标准库 · 普通用户运行
+Single `.pyz` file · Python standard library only · Runs as a normal user
 
-![version](https://img.shields.io/badge/version-2.0-2ea44f)
-![python](https://img.shields.io/badge/python-3-3776AB?logo=python&logoColor=white)
+![version](https://img.shields.io/badge/version-2.1-2ea44f)
+![python](https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white)
 ![platform](https://img.shields.io/badge/platform-Linux%20%2F%20Omarchy-1793D1?logo=archlinux&logoColor=white)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 
-**简体中文** · [English](README.en.md)
+**English** · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md)
 
 </div>
 
 ---
 
-## 三种模式
+## Three modes
 
-| 模式 | 测试内容 | 主要结果 |
+| Mode | What it tests | Main results |
 | --- | --- | --- |
-| 🧪 **典型测试** `typical` | CPU、内存、磁盘、小文件同步写入、持续负载 | 吞吐量、延迟、温度 |
-| 🤖 **Agent 编程** `agent` | 固定工程中的修 bug、加功能、补测试；默认使用 Pi | 独立验收通过率、总耗时、工具耗时、模型事件 |
-| 🖥️ **日常测试** `daily` | 单独编程 → 8 个网页＋编程 → 网页＋编程＋模拟更新负载 | 编程变慢倍数、网页响应指标、CPU／内存／磁盘等待 |
+| 🧪 **Typical** `typical` | CPU, memory, disk, small-file synchronous writes, sustained load | Throughput, latency, temperature |
+| 🤖 **Agent coding** `agent` | Fixing a bug, adding a feature and writing tests in a fixed project; uses Pi by default | Pass rate from independent acceptance checks, total time, tool time, model events |
+| 🖥️ **Daily** `daily` | Coding alone → 8 web pages + coding → web pages + coding + simulated update load | Coding slowdown factor, page responsiveness, CPU / memory / disk wait |
 
-## 快速开始
+## Quick start
 
-### 1. 下载
+### 1. Download
 
 ```sh
 curl -L -o ~/Downloads/omarchy-lab.pyz \
-  https://github.com/Charlie0113-T/omarchy_labs/raw/v2.0/omarchy-lab.pyz
+  https://github.com/Charlie0113-T/omarchy_labs/raw/v2.1/omarchy-lab.pyz
 ```
 
-`.pyz` 可直接运行，不必解压；它也是标准 ZIP，可以用 `unzip -l omarchy-lab.pyz` 查看全部源码。
+The `.pyz` runs as is, with no unpacking. It is also a standard ZIP, so `unzip -l omarchy-lab.pyz` lists all of the source.
 
-### 2. 按需要选一行运行
+### 2. Run the mode you need
 
 ```sh
-python3 ~/Downloads/omarchy-lab.pyz typical       # 典型测试
-python3 ~/Downloads/omarchy-lab.pyz agent --live  # Agent 编程（会调用模型）
-python3 ~/Downloads/omarchy-lab.pyz daily         # 日常测试
+python3 ~/Downloads/omarchy-lab.pyz typical       # typical benchmark
+python3 ~/Downloads/omarchy-lab.pyz agent --live  # agent coding (calls a model)
+python3 ~/Downloads/omarchy-lab.pyz daily         # daily multitasking
 ```
 
-完整参数见 `python3 ~/Downloads/omarchy-lab.pyz --help`。
+See `python3 ~/Downloads/omarchy-lab.pyz --help` for all options.
 
-## 前置条件
+## Requirements
 
-- 典型测试：已安装 `fio`、`sysbench`（Omarchy 上：`sudo pacman -S --needed fio sysbench`）
-- 真实 Agent：已配置好的 [Pi](https://github.com/earendil-works/pi)
-- 日常模式：桌面 Chromium／Chrome
+- Python 3.9 or newer
+- Typical mode: `fio` and `sysbench` installed (on Omarchy: `sudo pacman -S --needed fio sysbench`)
+- Real agent runs: a configured [Pi](https://github.com/earendil-works/pi)
+- Daily mode: a desktop session with Chromium / Chrome
 
 > [!IMPORTANT]
-> 用普通用户运行，**不要给整条命令加 `sudo`**。
+> Run it as your normal user. **Do not put `sudo` in front of the command.**
 
-## 🤖 Agent 模式
+## 🌐 Language
 
-Agent 模式会先跑固定的本机工具链回放，再执行真实任务。
+Prompts, `--help`, errors and reports are available in English, 简体中文, 繁體中文 and 日本語.
 
-- 失败或超时不会被算成“速度快”，验收也不依赖 Agent 自称完成。
-- 总耗时包含模型和网络等待，不能直接当成硬件成绩。
-- 不加 `--live` 时只做本机固定回放，不调用模型。
-
-> [!WARNING]
-> 默认真实任务一轮、最多十分钟，**会使用你的模型额度**。
-
-正式对照建议固定模型并跑三轮：
+- Run it in a terminal without `--lang` and it asks once at start. Press Enter to keep your system language.
+- `--lang en`, `zh-CN`, `zh-TW` or `ja` picks one and skips the question. `--lang auto` follows your system locale.
+- Set `OMARCHY_LAB_LANG=ja` (for example) to use a language for every run.
 
 ```sh
-python3 ~/Downloads/omarchy-lab.pyz agent --live --model '你的完整模型ID' --rounds 3
+python3 ~/Downloads/omarchy-lab.pyz daily --lang ja
 ```
 
-## 🖥️ 日常模式
+The workload is the same in every language. The agent's task prompt and the body of the browser test pages never change, and JSON keys and status codes stay in English, so results from runs in different languages can be compared.
 
-日常模式中的编程使用固定回放，不调用模型。更新负载默认模拟解压和磁盘同步。
+## 🤖 Agent mode
 
-若要观察**真实系统更新＋浏览器＋编程**：
+Agent mode first runs a fixed local toolchain replay, then the real task.
+
+- A failure or timeout never counts as a fast result. Acceptance doesn't depend on the agent saying it finished.
+- Total time includes model and network waits, so it is not a pure hardware score.
+- Without `--live`, only the local replay runs and no model is called.
+
+> [!WARNING]
+> By default the real task runs one round of up to ten minutes and **uses your model quota**.
+
+For a formal comparison, pin the model and run three rounds:
+
+```sh
+python3 ~/Downloads/omarchy-lab.pyz agent --live --model 'your-full-model-id' --rounds 3
+```
+
+## 🖥️ Daily mode
+
+Coding in daily mode uses the fixed replay and never calls a model. The update load is simulated by default with repeated unpacking and disk syncs.
+
+To observe a **real system update + browser + coding** instead:
 
 ```sh
 python3 ~/Downloads/omarchy-lab.pyz daily --observe-update --seconds 600
 ```
 
-看到提示后，在另一终端按 Omarchy 自带流程启动更新（参见 [Omarchy Manual](https://omarchy.org/manual/updates/)）。脚本负责观察，不代执行更新。
+When prompted, start the update in another terminal using Omarchy's own process (see the [Omarchy Manual](https://omarchy.org/manual/updates/)). The script only observes; it never runs the update for you.
 
 > [!TIP]
-> 日常测试期间保持测试仪表盘可见，不要最小化。
+> Keep the test dashboard visible during the daily run. Don't minimize it.
 
-## 📊 结果
+## 📊 Results
 
-结果自动打印，并保存在 `~/omarchy-lab/<时间戳>/`：
+Results are printed when the run ends and saved under `~/omarchy-lab/<timestamp>/`:
 
 ```text
-~/omarchy-lab/<时间戳>/
-├── report.txt     # 可读报告
-├── results.json   # 结构化结果
-└── samples.csv    # 逐秒采样
+~/omarchy-lab/<timestamp>/
+├── report.txt     # human-readable report
+├── results.json   # structured results
+└── samples.csv    # per-second samples
 ```
 
-| 退出码 | 含义 |
+| Exit code | Meaning |
 | :---: | --- |
-| `0` | 执行完整且任务通过 |
-| `1` | 不完整或有任务失败 |
-| `2` | 参数或前置条件错误 |
+| `0` | Run completed and all tasks passed |
+| `1` | Run incomplete or a task failed |
+| `2` | Bad arguments or missing prerequisites |
 
-## 许可证
+## 🛠️ Build from source
 
-本项目以 [Apache License 2.0](LICENSE) 发布。
+The source lives in [`src/`](src/). To rebuild `omarchy-lab.pyz` and run the tests:
 
-Omarchy 标志来自 [omacom/omarchy](https://github.com/omacom/omarchy)（MIT 许可）。本项目是社区工具，与 Omarchy 官方无关。
+```sh
+python3 scripts/build.py
+python3 -m unittest discover -s tests
+```
+
+User-facing text is kept in [`src/i18n.py`](src/i18n.py), one entry per message with all four languages side by side. The tests check that every message exists in every language with the same placeholders.
+
+## License
+
+Released under the [Apache License 2.0](LICENSE).
+
+The Omarchy logo comes from [omacom/omarchy](https://github.com/omacom/omarchy) (MIT license). This is a community tool and is not affiliated with Omarchy.
