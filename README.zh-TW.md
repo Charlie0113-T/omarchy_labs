@@ -75,6 +75,14 @@ python3 ~/Downloads/omarchy-lab.pyz daily --lang zh-TW
 
 各語言的測試負載完全相同：Agent 的任務提示與瀏覽器測試頁正文不隨語言改變，JSON 鍵名與狀態碼維持英文，因此不同語言跑出的結果可以直接比較。
 
+## 📮 分享結果
+
+每次測試結束後，工具會在報告目錄中儲存 `issue.md`：依本專案固定格式（摘要、裝置與儲存、結果、提示、回饋）排好的 GitHub Issue 內文，並以你選擇的語言印出發佈步驟。
+
+- 報告以英文為準，方便所有人的結果統一對照；如果你用其他語言執行，後面會附上可展開的同一份報告的該語言版本。
+- 不會自動上傳任何內容。發佈前請檢查檔案：其中包含硬體、核心與掛載資訊，家目錄會顯示為 `~`。
+- 用[測試報告 Issue 範本](https://github.com/Charlie0113-T/omarchy_labs/issues/new?template=test-report.md)發佈，或執行 `gh issue create -R Charlie0113-T/omarchy_labs --title "…" --body-file issue.md`。
+
 ## 🤖 Agent 模式
 
 Agent 模式會先執行固定的本機工具鏈重播，再執行真實任務。
@@ -114,6 +122,8 @@ python3 ~/Downloads/omarchy-lab.pyz daily --observe-update --seconds 600
 ```text
 ~/omarchy-lab/<時間戳記>/
 ├── report.txt     # 可讀報告
+├── report.en.txt  # 英文副本（以其他語言執行時產生）
+├── issue.md       # 可直接發佈的 GitHub Issue
 ├── results.json   # 結構化結果
 └── samples.csv    # 逐秒取樣
 ```

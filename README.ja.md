@@ -75,6 +75,14 @@ python3 ~/Downloads/omarchy-lab.pyz daily --lang ja
 
 テストの負荷はどの言語でも同じです。Agent へのタスク指示とブラウザのテストページ本文は言語によって変わらず、JSON のキーとステータスコードは英語のままなので、異なる言語で実行した結果もそのまま比較できます。
 
+## 📮 結果を共有する
+
+テストが終わるたびに、レポートディレクトリに `issue.md` が保存されます。このプロジェクト共通の形式（概要、デバイスとストレージ、結果、注意事項、フィードバック）に整えた GitHub Issue の本文で、投稿手順は選んだ言語で表示されます。
+
+- 全員の結果を同じ形で比べられるよう、レポートは英語が正本です。他の言語で実行した場合は、同じレポートのその言語版が折りたたみ式で続きます。
+- 自動でアップロードされることはありません。投稿前にファイルを確認してください。ハードウェア、カーネル、マウントの情報が含まれ、ホームディレクトリは `~` と表示されます。
+- [テストレポート用の Issue テンプレート](https://github.com/Charlie0113-T/omarchy_labs/issues/new?template=test-report.md)から投稿するか、`gh issue create -R Charlie0113-T/omarchy_labs --title "…" --body-file issue.md` を実行してください。
+
 ## 🤖 Agent モード
 
 Agent モードでは、まず固定のローカルツールチェーンのリプレイを実行し、その後に実際のタスクを実行します。
@@ -114,6 +122,8 @@ python3 ~/Downloads/omarchy-lab.pyz daily --observe-update --seconds 600
 ```text
 ~/omarchy-lab/<タイムスタンプ>/
 ├── report.txt     # 読みやすいレポート
+├── report.en.txt  # 英語版（他の言語で実行した場合）
+├── issue.md       # そのまま投稿できる GitHub Issue
 ├── results.json   # 構造化された結果
 └── samples.csv    # 毎秒のサンプル
 ```

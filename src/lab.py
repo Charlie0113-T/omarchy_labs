@@ -37,18 +37,13 @@ import bench_base as base
 import bench_agent as agent
 import bench_daily as daily
 import i18n
-from i18n import t
-
-VERSION = "2.1"
+from i18n import num, t
+import share
+from version import LAB_VERSION as VERSION
 
 
 def median(values):
     return statistics.median(values) if values else None
-
-
-def num(value, digits=3, unit=""):
-    """Format a measurement, or show "not available" instead of None."""
-    return t("common.na") if value is None else f"{value:.{digits}f}{unit}"
 
 
 def spread(values):
@@ -436,7 +431,7 @@ except BaseException as exc:
                     try:
                         update_proc.wait(timeout=3)
                     except subprocess.TimeoutExpired:
-                        update_results["error"] += " " + t("daily.sim_not_reaped")
+                        update_results["error"] = t("daily.sim_not_reaped")
             if update_stdout:
                 update_stdout.close()
             if update_stderr:
@@ -511,6 +506,16 @@ except BaseException as exc:
 
 
 def report(out, data, rows):
+    """Write report.txt in the chosen language, plus report.en.txt when that is not English."""
+    text = render_report(out, data, rows)
+    (out / "report.txt").write_text(text)
+    if i18n.current() != "en":
+        with i18n.using("en"):
+            (out / "report.en.txt").write_text(render_report(out, data, rows))
+    print("\n" + text, flush=True)
+
+
+def render_report(out, data, rows):
     meta, result = data["metadata"], data.get("result", {})
     lines = [f"Omarchy Lab {VERSION} | {data['mode']} | {data['status']}",
              t("report.config", machine=meta["machine_model"], cpu=meta["cpu_model"], kernel=meta["kernel"]),
@@ -579,12 +584,10 @@ def report(out, data, rows):
             lines.append("  " + t("report.phase_sample_line", label=label, n=len(group),
                                   cpu=num(statistics.mean(cpu) if cpu else None, 1, "%"),
                                   wait=num(statistics.mean(wait) if wait else None, 1, "%")))
-    lines += ["", t("report.notes_header")] + ["- " + n for n in data.get("notes", [])]
+    lines += ["", t("report.notes_header")] + ["- " + i18n.localize(n) for n in data.get("notes", [])]
     lines += ["- " + t("report.note_no_score"), "- " + t("report.note_storage"), "- " + t("report.note_quick"),
               "", t("report.path", path=out / "report.txt")]
-    text = "\n".join(lines) + "\n"
-    (out / "report.txt").write_text(text)
-    print("\n" + text, flush=True)
+    return "\n".join(lines) + "\n"
 
 
 def main():
@@ -649,9 +652,11 @@ def main():
             "machine_model": base.read("/sys/class/dmi/id/product_name"), "cpu_model": cpu[1] if cpu else platform.machine(),
             "work_dir": str(target), "mount": base.mount_at(target), "python": sys.version,
             "display": base.query(["hyprctl", "monitors", "-j"]), "quick": args.quick, "language": i18n.current(),
+            "memory_total_bytes": base.meminfo().get("MemTotal"), "omarchy_version": base.query(["omarchy-version"]),
+            "test_disks": base.disks_for_mount(base.json_query(base.LSBLK), base.mount_at(target)),
             "governors": {str(p): base.read(p) for p in Path('/sys/devices/system/cpu/cpufreq').glob('policy*/scaling_governor')},
             "argv": [v if i == 0 or sys.argv[i] != '--agent-command' else '<custom command omitted>' for i, v in enumerate(sys.argv[1:])],
-            "source_sha256": {m.__name__: hashlib.sha256(m.__loader__.get_data(m.__file__)).hexdigest() for m in (sys.modules[__name__], base, agent, daily, i18n)},
+            "source_sha256": {m.__name__: hashlib.sha256(m.__loader__.get_data(m.__file__)).hexdigest() for m in (sys.modules[__name__], base, agent, daily, i18n, share)},
             "fixture_versions": {"agent": agent.FIXTURE_VERSION, "daily": daily.FIXTURE_VERSION}}
     # --agent-command=... is also accepted by argparse; keep it out of reports.
     meta['argv'] = ['--agent-command=<omitted>' if v.startswith('--agent-command=') else v for v in meta['argv']]
@@ -679,7 +684,7 @@ def main():
             data["notes"].append(t("run.interrupted"))
         except Exception as e:
             data["status"] = "INCOMPLETE"
-            data["notes"].append(str(e))
+            data["notes"].append(i18n.message(e))
         finally:
             monitor.done.set()
             monitor.thread.join(timeout=3)
@@ -689,6 +694,7 @@ def main():
                 data["result"] = json.loads(partial.read_text())
             write_json(out / "results.json", data)
             report(out, data, monitor.rows)
+            share.offer(out, args.mode, data, monitor.rows)
     lock.close()
     return 0 if data["status"] == "COMPLETE" else 1
 

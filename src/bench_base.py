@@ -44,10 +44,12 @@ import time
 
 import i18n
 from i18n import t
+import share
 
 VERSION = "1.0"
 GIB = 1024 ** 3
 ENV = dict(os.environ, LC_ALL="C", LANG="C")
+LSBLK = ["lsblk", "--json", "--bytes", "-o", "NAME,PATH,MAJ:MIN,TYPE,SIZE,ROTA,MODEL,TRAN,FSTYPE,MOUNTPOINTS"]
 
 
 def read(path, default=""):
@@ -113,10 +115,13 @@ def temperatures(sensors):
 
 def disks_for_mount(blocks, mount):
     target = mount.get("maj:min")
+    # Btrfs reports its own device number, so also match the source path,
+    # e.g. "/dev/mapper/root[/@home]" -> /dev/mapper/root (LUKS -> partition -> disk).
+    source = re.sub(r"\[.*\]$", "", mount.get("source") or "")
     result = {}
     def walk(node, parents):
         lineage = parents + [node]
-        if target and node.get("maj:min") == target:
+        if (target and node.get("maj:min") == target) or (source.startswith("/dev/") and node.get("path") == source):
             for d in lineage:
                 if d.get("type") == "disk":
                     result[d.get("name")] = {k: d.get(k) for k in ("name", "model", "size", "rota", "tran")}
@@ -408,9 +413,19 @@ class Suite:
         self.meta["temperature_by_phase"] = phase_temps
         self.meta["sensor_paths"] = self.monitor.sensors
         self.meta["duration_s"] = round(time.time() - self.meta["start_epoch"], 1)
-        (self.out / "results.json").write_text(json.dumps(dict(version=VERSION, profile="QUICK-NOT-COMPARABLE" if self.args.quick else "FULL-3-ROUNDS",
-                      status=self.status, metadata=self.meta, summary=summary, records=self.records, notes=self.notes,
-                      failures=self.failures), ensure_ascii=False, indent=2))
+        results = dict(version=VERSION, profile="QUICK-NOT-COMPARABLE" if self.args.quick else "FULL-3-ROUNDS",
+                       status=self.status, metadata=self.meta, summary=summary, records=self.records, notes=self.notes,
+                       failures=self.failures)
+        (self.out / "results.json").write_text(json.dumps(results, ensure_ascii=False, indent=2))
+        report = self.report_text(summary, phase_temps)
+        (self.out / "report.txt").write_text(report)
+        if i18n.current() != "en":
+            with i18n.using("en"):
+                (self.out / "report.en.txt").write_text(self.report_text(summary, phase_temps))
+        print("\n" + report, flush=True)
+        share.offer(self.out, "typical", results, self.monitor.rows)
+
+    def report_text(self, summary, phase_temps):
         lines = [f"Omarchy Bench {VERSION} | " + t("bench.profile_quick" if self.args.quick else "bench.profile_full"),
                  t("bench.status", status=self.status, minutes=self.meta["duration_s"] / 60),
                  t("bench.cpu", cpu=self.meta["cpu_model"], threads=self.meta["logical_cpus_available"]),
@@ -424,7 +439,7 @@ class Suite:
         lines += [t("bench.method", mib=self.size / 1024**2), "", t("bench.table_header")]
         for r in summary:
             arrow = "↓" if r["lower_is_better"] else "↑"
-            lines.append(f"{r['label']} {arrow} | {r['value']:.2f} {r['unit']} | " + ", ".join(f"{v:.2f}" for v in r["samples"]) + f" | {r['spread_pct']:.1f}% (n={r['n']})")
+            lines.append(f"{i18n.localize(r['label'])} {arrow} | {r['value']:.2f} {r['unit']} | " + ", ".join(f"{v:.2f}" for v in r["samples"]) + f" | {r['spread_pct']:.1f}% (n={r['n']})")
         peak = self.meta["cpu_observed_peak_c"]
         lines += ["", t("report.cpu_peak", peak=peak) if peak is not None else t("bench.no_temp")]
         for phase in ("idle-baseline", "cpu-sustained", "recovery"):
@@ -437,15 +452,13 @@ class Suite:
         crc = t("bench.crc_pass") if "temporary_file_crc32c" in self.meta else t("bench.not_done")
         lines.append(t("bench.crc", value=crc))
         lines.append(t("bench.swap", deltas=self.meta["swap_page_deltas"]))
-        lines += ["", t("bench.tips_header")] + ["- " + x for x in self.notes + self.failures]
+        lines += ["", t("bench.tips_header")] + ["- " + i18n.localize(x) for x in self.notes + self.failures]
         lines += ["- " + t(key) for key in ("bench.tip_percentile", "bench.tip_direct_io", "bench.tip_window",
                                            "bench.tip_memory", "bench.tip_sustained", "bench.tip_no_score",
                                            "bench.tip_not_verified", "bench.tip_same_conditions", "bench.tip_fusion")]
         lines += ["", t("bench.boot_header"), self.meta["boot_timing"]["stdout"] or t("bench.not_obtained"), "",
-                  t("bench.out", path=self.out), t("bench.send_report")]
-        report = "\n".join(lines) + "\n"
-        (self.out / "report.txt").write_text(report)
-        print("\n" + report, flush=True)
+                  t("bench.out", path=self.out)]
+        return "\n".join(lines) + "\n"
 
 
 def main():
@@ -491,7 +504,7 @@ def main():
         ap.error(t("err.bench_locked"))
     out = Path(tempfile.mkdtemp(prefix=dt.datetime.now().strftime("%Y%m%d-%H%M%S-"), dir=base))
     (out / "raw").mkdir()
-    blocks = json_query(["lsblk", "--json", "--bytes", "-o", "NAME,MAJ:MIN,TYPE,SIZE,ROTA,MODEL,TRAN,FSTYPE,MOUNTPOINTS"])
+    blocks = json_query(LSBLK)
     text = read("/proc/cpuinfo")
     match = re.search(r"^model name\s*:\s*(.+)", text, re.M)
     meta = dict(start_epoch=time.time(), started_local=dt.datetime.now().astimezone().isoformat(),
@@ -503,6 +516,7 @@ def main():
                 test_directory=str(target), test_mount=mount, root_mount=rootmount, lsblk=blocks,
                 test_disks=disks_for_mount(blocks, mount), sysbench=sb_version["stdout"], fio=fio_version["stdout"],
                 package_versions=query(["pacman", "-Q", "omarchy", "hyprland", "linux", "fio", "sysbench"]),
+                omarchy_version=query(["omarchy-version"]),
                 cpu_governors={p: read(p) for p in glob.glob("/sys/devices/system/cpu/cpufreq/policy*/scaling_governor")},
                 power_profile=query(["powerprofilesctl", "get"]), boot_timing=query(["systemd-analyze", "time"]),
                 display=query(["hyprctl", "monitors", "-j"]), stop_temperature_c=args.stop_temp,
@@ -528,7 +542,7 @@ def main():
             suite.failures.append(t("bench.interrupted"))
         except Exception as e:
             suite.status = "INCOMPLETE"
-            suite.failures.append(str(e))
+            suite.failures.append(i18n.message(e))
         finally:
             suite.finalize()
     lock.close()

@@ -7,6 +7,7 @@ and the browser page bodies, stay identical in every language so results remain
 comparable. JSON keys and status codes also stay in English.
 """
 import argparse
+import contextlib
 import os
 import sys
 
@@ -57,9 +58,60 @@ def current():
     return _current
 
 
+class Text(str):
+    """A message shown in the current language that can be shown again in another one.
+
+    Notes and errors are collected while a test runs, in the chosen language. The
+    shared GitHub issue also needs them in English, so each message keeps its key.
+    """
+
+    def __new__(cls, key, values):
+        self = super().__new__(cls, _render(key, values, _current))
+        self.key, self.values = key, values
+        return self
+
+    def render(self, code):
+        return _render(self.key, self.values, code)
+
+
+def _render(key, values, code):
+    text = MESSAGES[key][LANGUAGES.index(code)]
+    return text.format(**{k: localize(v, code) for k, v in values.items()}) if values else text
+
+
 def t(key, **values):
-    text = MESSAGES[key][LANGUAGES.index(_current)]
-    return text.format(**values) if values else text
+    return Text(key, values)
+
+
+def localize(value, code=None):
+    """Show a collected message in another language; other values pass through unchanged."""
+    code = code or _current
+    if isinstance(value, Text):
+        return value.render(code)
+    if isinstance(value, BaseException) and len(value.args) == 1 and isinstance(value.args[0], Text):
+        return value.args[0].render(code)
+    return value
+
+
+def message(exc):
+    """The message of an exception, still translatable when it came from t()."""
+    return exc.args[0] if len(exc.args) == 1 and isinstance(exc.args[0], Text) else str(exc)
+
+
+@contextlib.contextmanager
+def using(code):
+    """Render in another language temporarily, e.g. the English copy of a report."""
+    global _current
+    previous, _current = _current, set_language(code)
+    try:
+        yield
+    finally:
+        _current = previous
+
+
+def num(value, digits=3, unit=""):
+    """Format a measurement, or show "not available" instead of None."""
+    return t("common.na") if value is None else f"{value:.{digits}f}{unit}"
 
 
 def option_value(argv):
@@ -582,10 +634,12 @@ MESSAGES = {
         "模擬負載未在 15 秒內正常結束；已要求終止，不能作為完整的負載成績。",
         "シミュレーション負荷が 15 秒以内に正常終了しませんでした。終了を要求したため、完全な負荷結果としては扱えません。"),
     "daily.sim_not_reaped": (
-        "The process has still not been reaped; its separate temporary directory is kept.",
-        "进程仍未回收，保留其独立临时目录。",
-        "處理程序仍未回收，保留其獨立的臨時目錄。",
-        "プロセスがまだ回収されていないため、専用の一時ディレクトリを残します。"),
+        "The simulated load did not finish within 15 seconds and its process has still not been reaped; "
+        "its separate temporary directory is kept. This cannot count as a complete load result.",
+        "模拟负载未在15秒内正常结束，进程仍未回收，保留其独立临时目录；不能作为完整负载成绩。",
+        "模擬負載未在 15 秒內正常結束，處理程序仍未回收，保留其獨立的臨時目錄；不能作為完整的負載成績。",
+        "シミュレーション負荷が 15 秒以内に終了せず、プロセスもまだ回収されていないため、専用の一時ディレクトリを残します。"
+        "完全な負荷結果としては扱えません。"),
     "daily.sim_no_result": (
         "The simulated load did not return a complete result: {error}",
         "模拟负载没有返回完整结果：{error}",
@@ -1063,11 +1117,6 @@ MESSAGES = {
         "输出目录：{path}",
         "輸出目錄：{path}",
         "出力ディレクトリ：{path}"),
-    "bench.send_report": (
-        "Send report.txt back for interpretation; results.json and samples.csv are for further comparison.",
-        "将 report.txt 发回即可解读；results.json 与 samples.csv 用于进一步比较。",
-        "將 report.txt 傳回即可解讀；results.json 與 samples.csv 用於進一步比較。",
-        "解釈には report.txt を送ってください。results.json と samples.csv はさらに詳しい比較に使います。"),
     "bench.start_quick": ("quick validation", "快速验证", "快速驗證", "クイック検証"),
     "bench.start_full": (
         "formal test, usually about 8–15 minutes",
@@ -1194,4 +1243,121 @@ MESSAGES = {
         "更新式负载模拟需要至少 128 MiB 可用空间",
         "類更新負載模擬需要至少 128 MiB 可用空間",
         "更新風の負荷シミュレーションには 128 MiB 以上の空き容量が必要です"),
+
+    # Shared GitHub issue (fixed format). Table headers are pipe-separated columns.
+    "issue.summary": ("Summary", "摘要", "摘要", "概要"),
+    "issue.run": (
+        "Omarchy Lab {version} · mode `{mode}` · status **{status}**",
+        "Omarchy Lab {version} · 模式 `{mode}` · 状态 **{status}**",
+        "Omarchy Lab {version} · 模式 `{mode}` · 狀態 **{status}**",
+        "Omarchy Lab {version} · モード `{mode}` · 状態 **{status}**"),
+    "issue.quick": (
+        "quick run, not comparable with full runs",
+        "快速验证，不能与正式测试比较",
+        "快速驗證，不能與正式測試比較",
+        "クイック実行（正式な実行とは比較不可）"),
+    "issue.language": (
+        "Run language: {name} · started {started}",
+        "运行语言：{name} · 开始于 {started}",
+        "執行語言：{name} · 開始於 {started}",
+        "実行言語：{name} · 開始 {started}"),
+    "issue.device": ("Device and storage", "设备与存储", "裝置與儲存", "デバイスとストレージ"),
+    "issue.device_header": ("Item | Value", "项目 | 值", "項目 | 值", "項目 | 値"),
+    "issue.model": ("Model", "型号", "型號", "機種"),
+    "issue.cpu": ("CPU", "CPU", "CPU", "CPU"),
+    "issue.memory": ("Memory", "内存", "記憶體", "メモリ"),
+    "issue.kernel": ("Kernel", "内核", "核心", "カーネル"),
+    "issue.omarchy": ("Omarchy version", "Omarchy 版本", "Omarchy 版本", "Omarchy のバージョン"),
+    "issue.test_dir": ("Test directory", "测试目录", "測試目錄", "テストディレクトリ"),
+    "issue.filesystem": ("Filesystem", "文件系统", "檔案系統", "ファイルシステム"),
+    "issue.fs_value": ("{fstype} on {source}", "{fstype}，位于 {source}", "{fstype}，位於 {source}", "{source} 上の {fstype}"),
+    "issue.mount_options": ("Mount options", "挂载选项", "掛載選項", "マウントオプション"),
+    "issue.disk": ("Physical disk", "物理磁盘", "實體磁碟", "物理ディスク"),
+    "issue.disk_unknown": (
+        "unknown (not detected automatically)",
+        "未知（未能自动识别）",
+        "未知（無法自動識別）",
+        "不明（自動検出できず）"),
+    "issue.rotational": ("rotational (HDD)", "旋转介质（HDD）", "旋轉媒體（HDD）", "回転型（HDD）"),
+    "issue.solid": ("non-rotational (SSD/flash)", "非旋转介质（SSD/闪存）", "非旋轉媒體（SSD／快閃記憶體）", "非回転型（SSD／フラッシュ）"),
+    "issue.results": ("Results", "结果", "結果", "結果"),
+    "issue.daily_header": (
+        "Scenario | Median of passing tasks | Acceptance | Relative time | Mean iowait",
+        "场景 | 成功任务中位数 | 验收 | 相对耗时 | iowait 均值",
+        "情境 | 成功任務中位數 | 驗收 | 相對耗時 | iowait 平均",
+        "シナリオ | 成功タスクの中央値 | 受け入れ判定 | 相対時間 | iowait 平均"),
+    "issue.browser_header": (
+        "Browser phase | Status | rAF p95 | Timer lateness p95",
+        "浏览器阶段 | 状态 | rAF p95 | 定时器延迟 p95",
+        "瀏覽器階段 | 狀態 | rAF p95 | 計時器延遲 p95",
+        "ブラウザのフェーズ | 状態 | rAF p95 | タイマー遅延 p95"),
+    "issue.rounds_header": (
+        "Round | Status | End-to-end | Acceptance | Model | First text | Tools done/errors/retries",
+        "轮次 | 状态 | 端到端 | 验收 | 模型 | 首文字 | 工具 完成/错误/重试",
+        "輪次 | 狀態 | 端到端 | 驗收 | 模型 | 首段文字 | 工具 完成／錯誤／重試",
+        "ラウンド | 状態 | エンドツーエンド | 受け入れ判定 | モデル | 最初のテキスト | ツール 完了／エラー／リトライ"),
+    "issue.notes": ("Notes from the run", "运行中的提示", "執行中的提示", "実行中の注意事項"),
+    "issue.none": ("No notes", "没有提示", "沒有提示", "注意事項はありません"),
+    "issue.feedback": ("Feedback / questions", "反馈 / 问题", "回饋／問題", "フィードバック／質問"),
+    "issue.feedback_hint": (
+        "<!-- Optional: what you noticed, questions or ideas. Delete this section if you have none. -->",
+        "<!-- 可选：你观察到的情况、问题或建议。没有的话可以删掉这一节。 -->",
+        "<!-- 選填：你觀察到的情況、問題或建議。沒有的話可以刪掉這一節。 -->",
+        "<!-- 任意：気づいたこと、質問、アイデアなど。なければこの節を削除してください。 -->"),
+    "phase.programming-alone": ("Programming alone", "单独编程", "單獨寫程式", "プログラミングのみ"),
+    "phase.tabs-programming": ("Browser tabs + programming", "多标签页＋编程", "多分頁＋寫程式", "複数タブ＋プログラミング"),
+    "phase.tabs-programming-update-sim": (
+        "Tabs + programming + simulated update",
+        "多标签页＋编程＋模拟更新",
+        "多分頁＋寫程式＋模擬更新",
+        "複数タブ＋プログラミング＋更新シミュレーション"),
+    "phase.real-update-observation": ("Real update observation", "真实更新观察", "真實更新觀察", "実際の更新の観測"),
+    "phase.browser-idle": ("Browser idle", "浏览器空闲", "瀏覽器閒置", "ブラウザ待機"),
+
+    # Guidance printed after each run
+    "share.header": (
+        "Share this result on GitHub (optional; nothing is uploaded automatically)",
+        "在 GitHub 分享本次结果（可选；不会自动上传任何内容）",
+        "在 GitHub 分享本次結果（選填；不會自動上傳任何內容）",
+        "この結果を GitHub で共有する（任意。自動でアップロードされることはありません）"),
+    "share.saved": (
+        "A ready-to-post report in the project's fixed format is saved at: {path}",
+        "已按项目的固定格式生成可直接发布的报告：{path}",
+        "已依專案的固定格式產生可直接發佈的報告：{path}",
+        "プロジェクト共通の形式で、そのまま投稿できるレポートを保存しました：{path}"),
+    "share.languages": (
+        "It is in English, followed by the same report in {name} in a collapsed section.",
+        "报告以英文为准，后面附有可展开的{name}版本。",
+        "報告以英文為準，後面附有可展開的{name}版本。",
+        "レポートは英語が正本で、その後ろに折りたたみ式の{name}版が付いています。"),
+    "share.review": (
+        "Review it first: it lists your hardware, kernel and mount details. Remove anything you don't want to publish.",
+        "发布前请先检查：其中包含你的硬件、内核和挂载信息，不想公开的内容请删掉。",
+        "發佈前請先檢查：其中包含你的硬體、核心與掛載資訊，不想公開的內容請刪除。",
+        "投稿前に内容を確認してください。ハードウェア、カーネル、マウントの情報が含まれます。公開したくない部分は削除してください。"),
+    "share.open": (
+        "Open a new issue (the title is filled in) and paste the whole file as the description:",
+        "打开新 Issue（标题已填好），把整个文件内容粘贴为正文：",
+        "開啟新 Issue（標題已填好），把整個檔案內容貼上作為內文：",
+        "新しい Issue を開き（タイトルは入力済み）、ファイル全体を本文に貼り付けてください："),
+    "share.copy": (
+        "Copy the file to the clipboard: {command}",
+        "复制文件内容到剪贴板：{command}",
+        "複製檔案內容到剪貼簿：{command}",
+        "ファイルをクリップボードにコピー：{command}"),
+    "share.gh": (
+        "Or post it with GitHub CLI: {command}",
+        "或者用 GitHub CLI 直接发布：{command}",
+        "或者用 GitHub CLI 直接發佈：{command}",
+        "または GitHub CLI で投稿：{command}"),
+    "share.attach": (
+        "Optional: drag {file} into the issue to attach the full report.",
+        "可选：把 {file} 拖进 Issue，附上完整报告。",
+        "選填：把 {file} 拖進 Issue，附上完整報告。",
+        "任意：{file} を Issue にドラッグすると、完全なレポートを添付できます。"),
+    "share.failed": (
+        "Could not prepare the GitHub issue text: {error}. Your results are saved.",
+        "无法生成 GitHub Issue 文本：{error}。测试结果已保存。",
+        "無法產生 GitHub Issue 文字：{error}。測試結果已儲存。",
+        "GitHub Issue 用のテキストを作成できませんでした：{error}。結果は保存されています。"),
 }
