@@ -9,9 +9,9 @@
 
 **適用於 Linux / Omarchy 的三模式效能測試：硬體、AI Agent 寫程式、日常多工**
 
-單一 `.pyz` 檔 · 僅依賴 Python 標準函式庫 · 以一般使用者執行
+Omarchy 頂部列外掛或單一 `.pyz` 檔 · 僅依賴 Python 標準函式庫 · 以一般使用者執行
 
-![version](https://img.shields.io/badge/version-2.1-2ea44f)
+![version](https://img.shields.io/badge/version-2.2-2ea44f)
 ![python](https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white)
 ![platform](https://img.shields.io/badge/platform-Linux%20%2F%20Omarchy-1793D1?logo=archlinux&logoColor=white)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
@@ -36,7 +36,7 @@
 
 ```sh
 curl -L -o ~/Downloads/omarchy-lab.pyz \
-  https://github.com/Charlie0113-T/omarchy_labs/raw/v2.1/omarchy-lab.pyz
+  https://github.com/Charlie0113-T/omarchy_labs/releases/latest/download/omarchy-lab.pyz
 ```
 
 `.pyz` 可直接執行，不必解壓縮；它也是標準 ZIP，可以用 `unzip -l omarchy-lab.pyz` 查看全部原始碼。
@@ -50,6 +50,52 @@ python3 ~/Downloads/omarchy-lab.pyz daily         # 日常測試
 ```
 
 完整參數請見 `python3 ~/Downloads/omarchy-lab.pyz --help`。
+
+## 🧩 Omarchy 外掛
+
+在 Omarchy（Quattro）上，Omarchy Lab 也可以放進頂部列。點擊燒瓶圖示即可啟動測試、開啟最新報告或結果資料夾、分享最新結果，或停止正在執行的測試。
+
+<p align="center"><img src="preview.png" alt="Omarchy 頂部列中的 Omarchy Lab 面板" width="420"></p>
+
+### 安裝
+
+```sh
+omarchy plugin add https://github.com/Charlie0113-T/omarchy_labs
+omarchy plugin enable io.github.charlie0113-t.omarchy-lab
+```
+
+也可以使用 **Setup › Plugins › Add**。外掛安裝後預設為停用，方便你先閱讀程式碼；`enable` 會把圖示放到頂部列右側。
+
+### 使用
+
+- 每項測試都只在你選擇後啟動，並在可見的終端機視窗中執行。關閉該視窗或選擇「停止正在執行的測試」都會乾淨地停止：測試瀏覽器會關閉、臨時檔案會刪除，並儲存部分報告。
+- 「Agent + 你的模型」在呼叫模型前會要求你按 Enter 確認。
+- 面板跟隨系統語言；測試本身會在終端機中詢問要使用哪種語言。
+
+### 更新與移除
+
+```sh
+omarchy plugin update io.github.charlie0113-t.omarchy-lab
+omarchy plugin remove io.github.charlie0113-t.omarchy-lab
+```
+
+移除會先停用外掛，再刪除其資料夾 `~/.config/omarchy/plugins/io.github.charlie0113-t.omarchy-lab`。`~/omarchy-lab/` 中的測試結果會保留，不再需要時可自行刪除。
+
+### 外掛會變更什麼
+
+- 安裝到 `~/.config/omarchy/plugins/io.github.charlie0113-t.omarchy-lab/`。
+- 啟用時透過 Omarchy 內建的 `plugin enable`，在 `~/.config/omarchy/shell.json` 的頂部列配置中加入一項；停用或移除時會刪除這一項。
+- 測試結果儲存在 `~/omarchy-lab/`，執行時在家目錄使用臨時資料夾，結束後刪除。安裝、啟用或登入時都不會執行任何東西，外掛本身也從不使用 `sudo`。
+
+### 相依套件
+
+| 用途 | 需要 |
+| --- | --- |
+| 全部功能 | 搭載 Quattro shell 的 Omarchy、Python 3.9+（Omarchy 已內建） |
+| 典型測試 | `fio`、`sysbench` |
+| 日常測試 | Chromium 或 Chrome |
+| Agent + 你的模型 | 已設定好的 [Pi](https://github.com/earendil-works/pi) |
+| 分享按鈕 | `wl-copy`、`xdg-open`、`notify-send`（Omarchy 已內建） |
 
 ## 前置條件
 
@@ -136,7 +182,7 @@ python3 ~/Downloads/omarchy-lab.pyz daily --observe-update --seconds 600
 
 ## 🛠️ 從原始碼建置
 
-原始碼位於 [`src/`](src/)。重新打包 `omarchy-lab.pyz` 並執行測試：
+原始碼位於 [`src/`](src/)，Omarchy 外掛直接執行這份原始碼。打包發佈用的 `dist/omarchy-lab.pyz` 並執行測試：
 
 ```sh
 python3 scripts/build.py

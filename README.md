@@ -9,9 +9,9 @@
 
 **A three-mode benchmark for Linux / Omarchy: hardware, AI agent coding, and everyday multitasking**
 
-Single `.pyz` file · Python standard library only · Runs as a normal user
+Omarchy bar plugin or a single `.pyz` file · Python standard library only · Runs as a normal user
 
-![version](https://img.shields.io/badge/version-2.1-2ea44f)
+![version](https://img.shields.io/badge/version-2.2-2ea44f)
 ![python](https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white)
 ![platform](https://img.shields.io/badge/platform-Linux%20%2F%20Omarchy-1793D1?logo=archlinux&logoColor=white)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
@@ -36,7 +36,7 @@ Single `.pyz` file · Python standard library only · Runs as a normal user
 
 ```sh
 curl -L -o ~/Downloads/omarchy-lab.pyz \
-  https://github.com/Charlie0113-T/omarchy_labs/raw/v2.1/omarchy-lab.pyz
+  https://github.com/Charlie0113-T/omarchy_labs/releases/latest/download/omarchy-lab.pyz
 ```
 
 The `.pyz` runs as is, with no unpacking. It is also a standard ZIP, so `unzip -l omarchy-lab.pyz` lists all of the source.
@@ -50,6 +50,52 @@ python3 ~/Downloads/omarchy-lab.pyz daily         # daily multitasking
 ```
 
 See `python3 ~/Downloads/omarchy-lab.pyz --help` for all options.
+
+## 🧩 Omarchy plugin
+
+On Omarchy (Quattro), Omarchy Lab can also live in your bar. Click the flask icon to start a test, open the latest report or the results folder, share the latest result, or stop a running test.
+
+<p align="center"><img src="preview.png" alt="Omarchy Lab panel in the Omarchy bar" width="420"></p>
+
+### Install
+
+```sh
+omarchy plugin add https://github.com/Charlie0113-T/omarchy_labs
+omarchy plugin enable io.github.charlie0113-t.omarchy-lab
+```
+
+Or use **Setup › Plugins › Add**. Plugins install disabled so you can read the code first; `enable` puts the icon on the right side of the bar.
+
+### Use
+
+- A test starts only when you pick it, in a terminal window you can see. Closing that window or choosing **Stop the running test** stops it cleanly: the test browser closes, temporary files are removed and a partial report is saved.
+- **Agent with your model** asks you to press Enter before it calls your model.
+- The panel follows your system language; the test asks for its own language in the terminal.
+
+### Update and remove
+
+```sh
+omarchy plugin update io.github.charlie0113-t.omarchy-lab
+omarchy plugin remove io.github.charlie0113-t.omarchy-lab
+```
+
+Removing disables the plugin and deletes its folder, `~/.config/omarchy/plugins/io.github.charlie0113-t.omarchy-lab`. Your results in `~/omarchy-lab/` are kept; delete that folder yourself if you no longer want them.
+
+### What the plugin changes
+
+- It installs into `~/.config/omarchy/plugins/io.github.charlie0113-t.omarchy-lab/`.
+- Enabling adds one entry to the bar layout in `~/.config/omarchy/shell.json`, through Omarchy's own `plugin enable`. Disabling or removing takes it out again.
+- Tests save results in `~/omarchy-lab/` and use temporary folders in your home directory that are removed afterwards. Nothing runs at install, enable or login, and the plugin itself never uses `sudo`.
+
+### Dependencies
+
+| Needed for | What |
+| --- | --- |
+| Everything | Omarchy with the Quattro shell, Python 3.9+ (already on Omarchy) |
+| Typical test | `fio`, `sysbench` |
+| Daily test | Chromium or Chrome |
+| Agent with your model | a configured [Pi](https://github.com/earendil-works/pi) |
+| Share button | `wl-copy`, `xdg-open`, `notify-send` (included in Omarchy) |
 
 ## Requirements
 
@@ -136,7 +182,7 @@ Results are printed when the run ends and saved under `~/omarchy-lab/<timestamp>
 
 ## 🛠️ Build from source
 
-The source lives in [`src/`](src/). To rebuild `omarchy-lab.pyz` and run the tests:
+The source lives in [`src/`](src/); the Omarchy plugin runs it directly. To build the release file `dist/omarchy-lab.pyz` and run the tests:
 
 ```sh
 python3 scripts/build.py

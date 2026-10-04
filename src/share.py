@@ -212,11 +212,13 @@ def offer(out, kind, data, rows):
     try:
         path = Path(out) / "issue.md"
         heading = title(kind, data)
+        url = f"https://github.com/{REPO}/issues/new?template={TEMPLATE}&title={quote(heading)}"
         path.write_text(compose(kind, data, rows))
+        # The Omarchy bar widget's "Share latest result" opens this link.
+        (Path(out) / "issue-url.txt").write_text(url + "\n")
     except Exception as exc:
         print(t("share.failed", error=exc), flush=True)
         return None
-    url = f"https://github.com/{REPO}/issues/new?template={TEMPLATE}&title={quote(heading)}"
     lines = ["", "── " + t("share.header") + " ──", "1. " + t("share.saved", path=path)]
     if i18n.current() != "en":
         lines.append("   " + t("share.languages", name=i18n.NAMES[i18n.current()]))

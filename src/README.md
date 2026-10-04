@@ -1,4 +1,4 @@
-# Omarchy Lab 2.1
+# Omarchy Lab 2.2
 
 Three test modes for Linux / Omarchy. Implemented using the Python standard library and run as a regular user.
 

@@ -665,6 +665,8 @@ def main():
     def interrupted(signum, frame):
         raise KeyboardInterrupt()
     signal.signal(signal.SIGTERM, interrupted)
+    # Closing the test's terminal window must still stop the browser and clean up.
+    signal.signal(signal.SIGHUP, base.hung_up)
     print(t("run.banner", version=VERSION, mode=args.mode, out=out), flush=True)
     with tempfile.TemporaryDirectory(prefix=".omarchy-lab-", dir=target) as tmp:
         try:

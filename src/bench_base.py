@@ -141,6 +141,14 @@ class Stopped(Exception):
     pass
 
 
+def hung_up(signum, frame):
+    """The terminal closed: keep cleaning up and saving results without a screen to write to."""
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    for stream in (sys.stdout, sys.stderr):
+        os.dup2(devnull, stream.fileno())
+    raise KeyboardInterrupt()
+
+
 class Monitor:
     def __init__(self, out, limit):
         self.out, self.limit = out, limit
@@ -535,6 +543,7 @@ def main():
         def interrupted(signum, frame):
             raise KeyboardInterrupt()
         signal.signal(signal.SIGTERM, interrupted)
+        signal.signal(signal.SIGHUP, hung_up)
         try:
             suite.execute()
         except KeyboardInterrupt:

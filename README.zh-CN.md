@@ -9,9 +9,9 @@
 
 **面向 Linux / Omarchy 的三模式性能测试：硬件、AI Agent 编程、日常多任务**
 
-单文件 `.pyz` · 仅依赖 Python 标准库 · 普通用户运行
+Omarchy 顶栏插件或单文件 `.pyz` · 仅依赖 Python 标准库 · 普通用户运行
 
-![version](https://img.shields.io/badge/version-2.1-2ea44f)
+![version](https://img.shields.io/badge/version-2.2-2ea44f)
 ![python](https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white)
 ![platform](https://img.shields.io/badge/platform-Linux%20%2F%20Omarchy-1793D1?logo=archlinux&logoColor=white)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
@@ -36,7 +36,7 @@
 
 ```sh
 curl -L -o ~/Downloads/omarchy-lab.pyz \
-  https://github.com/Charlie0113-T/omarchy_labs/raw/v2.1/omarchy-lab.pyz
+  https://github.com/Charlie0113-T/omarchy_labs/releases/latest/download/omarchy-lab.pyz
 ```
 
 `.pyz` 可直接运行，不必解压；它也是标准 ZIP，可以用 `unzip -l omarchy-lab.pyz` 查看全部源码。
@@ -50,6 +50,52 @@ python3 ~/Downloads/omarchy-lab.pyz daily         # 日常测试
 ```
 
 完整参数见 `python3 ~/Downloads/omarchy-lab.pyz --help`。
+
+## 🧩 Omarchy 插件
+
+在 Omarchy（Quattro）上，Omarchy Lab 也可以放进顶栏。点击烧瓶图标即可启动测试、打开最新报告或结果文件夹、分享最新结果，或停止正在运行的测试。
+
+<p align="center"><img src="preview.png" alt="Omarchy 顶栏中的 Omarchy Lab 面板" width="420"></p>
+
+### 安装
+
+```sh
+omarchy plugin add https://github.com/Charlie0113-T/omarchy_labs
+omarchy plugin enable io.github.charlie0113-t.omarchy-lab
+```
+
+也可以使用 **Setup › Plugins › Add**。插件安装后默认处于停用状态，方便你先阅读代码；`enable` 会把图标放到顶栏右侧。
+
+### 使用
+
+- 每项测试都只在你选择后启动，并在可见的终端窗口中运行。关闭该窗口或选择“停止正在运行的测试”都会干净地停止：测试浏览器会关闭，临时文件会删除，并保存部分报告。
+- “Agent + 你的模型”在调用模型前会要求你按回车确认。
+- 面板跟随系统语言；测试本身会在终端里询问使用哪种语言。
+
+### 更新与移除
+
+```sh
+omarchy plugin update io.github.charlie0113-t.omarchy-lab
+omarchy plugin remove io.github.charlie0113-t.omarchy-lab
+```
+
+移除会先停用插件，再删除其文件夹 `~/.config/omarchy/plugins/io.github.charlie0113-t.omarchy-lab`。`~/omarchy-lab/` 中的测试结果会保留，不再需要时可自行删除。
+
+### 插件会改动什么
+
+- 安装到 `~/.config/omarchy/plugins/io.github.charlie0113-t.omarchy-lab/`。
+- 启用时通过 Omarchy 自带的 `plugin enable`，在 `~/.config/omarchy/shell.json` 的顶栏布局中加入一项；停用或移除时会删掉这一项。
+- 测试结果保存在 `~/omarchy-lab/`，运行时在家目录使用临时文件夹，结束后删除。安装、启用或登录时都不会运行任何东西，插件本身也从不使用 `sudo`。
+
+### 依赖
+
+| 用途 | 需要 |
+| --- | --- |
+| 全部功能 | 带 Quattro shell 的 Omarchy、Python 3.9+（Omarchy 已自带） |
+| 典型测试 | `fio`、`sysbench` |
+| 日常测试 | Chromium 或 Chrome |
+| Agent + 你的模型 | 已配置好的 [Pi](https://github.com/earendil-works/pi) |
+| 分享按钮 | `wl-copy`、`xdg-open`、`notify-send`（Omarchy 已自带） |
 
 ## 前置条件
 
@@ -136,7 +182,7 @@ python3 ~/Downloads/omarchy-lab.pyz daily --observe-update --seconds 600
 
 ## 🛠️ 从源码构建
 
-源码在 [`src/`](src/)。重新打包 `omarchy-lab.pyz` 并运行测试：
+源码在 [`src/`](src/)，Omarchy 插件直接运行这份源码。打包发布用的 `dist/omarchy-lab.pyz` 并运行测试：
 
 ```sh
 python3 scripts/build.py
