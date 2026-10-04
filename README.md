@@ -75,6 +75,14 @@ python3 ~/Downloads/omarchy-lab.pyz daily --lang ja
 
 The workload is the same in every language. The agent's task prompt and the body of the browser test pages never change, and JSON keys and status codes stay in English, so results from runs in different languages can be compared.
 
+## 📮 Share your result
+
+After every run, the tool saves `issue.md` in the report directory: a ready-to-post GitHub issue in this project's fixed format (Summary, Device and storage, Results, Notes, Feedback). It prints the steps to post it, in the language you chose.
+
+- The report is in English first, so all shared results read the same. If you ran the test in another language, the same report follows in that language in a collapsed section.
+- Nothing is uploaded automatically. Review the file before posting: it lists your hardware, kernel and mount details. Your home directory is shown as `~`.
+- Post it as a [new test report issue](https://github.com/Charlie0113-T/omarchy_labs/issues/new?template=test-report.md), or with `gh issue create -R Charlie0113-T/omarchy_labs --title "…" --body-file issue.md`.
+
 ## 🤖 Agent mode
 
 Agent mode first runs a fixed local toolchain replay, then the real task.
@@ -114,6 +122,8 @@ Results are printed when the run ends and saved under `~/omarchy-lab/<timestamp>
 ```text
 ~/omarchy-lab/<timestamp>/
 ├── report.txt     # human-readable report
+├── report.en.txt  # English copy, when you ran in another language
+├── issue.md       # ready-to-post GitHub issue
 ├── results.json   # structured results
 └── samples.csv    # per-second samples
 ```

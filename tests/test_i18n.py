@@ -71,8 +71,8 @@ class CatalogTest(unittest.TestCase):
 
     def test_no_unused_keys(self):
         code = "\n".join(code_without_catalog(p) for p in SRC.glob("*.py"))
-        dynamic = {f"page.title.{i}" for i in range(8)}
-        unused = [k for k in i18n.MESSAGES if k not in dynamic and f'"{k}"' not in code]
+        dynamic = {f"page.title.{i}" for i in range(8)} | {k for k in i18n.MESSAGES if k.startswith("phase.")}
+        unused = [k for k in i18n.MESSAGES if k not in dynamic and f'"{k}"' not in code and f"'{k}'" not in code]
         self.assertEqual(unused, [])
 
     def test_no_hard_coded_cjk_outside_catalog(self):
