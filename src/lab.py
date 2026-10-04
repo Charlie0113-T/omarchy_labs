@@ -412,6 +412,7 @@ except BaseException as exc:
             monitor.phase = "recovery"
         completed_workload = True
     finally:
+        base.finishing()
         browser.set_phase("recovery")
         monitor.phase = "recovery"
         if update_proc:
@@ -662,11 +663,8 @@ def main():
     meta['argv'] = ['--agent-command=<omitted>' if v.startswith('--agent-command=') else v for v in meta['argv']]
     data = {"version": VERSION, "mode": args.mode, "metadata": meta, "notes": [], "status": "RUNNING"}
     monitor.thread.start()
-    def interrupted(signum, frame):
-        raise KeyboardInterrupt()
-    signal.signal(signal.SIGTERM, interrupted)
-    # Closing the test's terminal window must still stop the browser and clean up.
-    signal.signal(signal.SIGHUP, base.hung_up)
+    # Ctrl+C, Stop and closing the terminal all stop the test once and still clean up.
+    base.handle_stop_signals()
     print(t("run.banner", version=VERSION, mode=args.mode, out=out), flush=True)
     with tempfile.TemporaryDirectory(prefix=".omarchy-lab-", dir=target) as tmp:
         try:
@@ -688,6 +686,7 @@ def main():
             data["status"] = "INCOMPLETE"
             data["notes"].append(i18n.message(e))
         finally:
+            base.finishing()
             monitor.done.set()
             monitor.thread.join(timeout=3)
             # Recover already-written partial results on interruption/failure.

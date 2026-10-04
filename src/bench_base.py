@@ -141,12 +141,37 @@ class Stopped(Exception):
     pass
 
 
-def hung_up(signum, frame):
-    """The terminal closed: keep cleaning up and saving results without a screen to write to."""
-    devnull = os.open(os.devnull, os.O_WRONLY)
-    for stream in (sys.stdout, sys.stderr):
-        os.dup2(devnull, stream.fileno())
-    raise KeyboardInterrupt()
+_stopping = False
+
+
+def stop_requested(signum, frame):
+    """Ctrl+C, the bar widget's Stop (SIGTERM) or a closed terminal (SIGHUP) stops a test once.
+
+    Cleanup and saving run while that stop unwinds. A closing terminal can send more
+    than one signal, and Stop can be clicked twice, so later signals are ignored
+    instead of cutting cleanup short (on Python 3.14 a second SIGHUP lost the report).
+    """
+    global _stopping
+    if signum == signal.SIGHUP:
+        # The terminal is gone: keep cleaning up and saving without a screen to write to.
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        for stream in (sys.stdout, sys.stderr):
+            os.dup2(devnull, stream.fileno())
+        os.close(devnull)
+    if not _stopping:
+        _stopping = True
+        raise KeyboardInterrupt()
+
+
+def finishing():
+    """Called where final cleanup starts: from here on a signal must not cut saving short."""
+    global _stopping
+    _stopping = True
+
+
+def handle_stop_signals():
+    for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(signum, stop_requested)
 
 
 class Monitor:
@@ -385,6 +410,7 @@ class Suite:
         self.status = "COMPLETE"
 
     def finalize(self):
+        finishing()
         self.monitor.done.set()
         if self.monitor.thread.is_alive():
             self.monitor.thread.join(timeout=3)
@@ -540,10 +566,7 @@ def main():
             suite.notes.append(t("note.virtual_fs"))
         if mount.get("maj:min") != rootmount.get("maj:min"):
             suite.notes.append(t("note.other_mount"))
-        def interrupted(signum, frame):
-            raise KeyboardInterrupt()
-        signal.signal(signal.SIGTERM, interrupted)
-        signal.signal(signal.SIGHUP, hung_up)
+        handle_stop_signals()
         try:
             suite.execute()
         except KeyboardInterrupt:

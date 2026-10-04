@@ -37,8 +37,15 @@ check() { # check "<name>" <command...>
 }
 ask() { # ask "<question>" -> PASS/FAIL from the user's answer
   local answer
-  read -r -p "  ? $1 [y/n] " answer </dev/tty
-  if [[ $answer == [yY]* ]]; then record PASS "$1" "confirmed by you"; else record FAIL "$1" "you answered no"; fi
+  # Drop keys pressed while waiting (e.g. Enter) so they cannot answer this question.
+  while read -r -t 0.1 -n 1000 _ </dev/tty; do :; done
+  while true; do
+    read -r -p "  ? $1 [y/n] " answer </dev/tty || answer=n
+    case $answer in
+    [yY]*) record PASS "$1" "confirmed by you"; return ;;
+    [nN]*) record FAIL "$1" "you answered no"; return ;;
+    esac
+  done
 }
 wait_for() { # wait_for <seconds> <command...>
   local seconds="$1"
@@ -60,7 +67,15 @@ idle() { [[ $(action status) == idle ]]; }
 running() { [[ $(action status) == running ]]; }
 run_count() { find "$REPORTS" -mindepth 1 -maxdepth 1 -type d -name '2*' 2>/dev/null | wc -l; }
 latest_run() { find "$REPORTS" -mindepth 1 -maxdepth 1 -type d -name '2*' 2>/dev/null | sort | tail -n 1; }
-latest_status_is() { grep -q "\"status\": \"$1\"" "$(latest_run)/results.json"; }
+latest_status_is() {
+  local d
+  d=$(latest_run)
+  grep -q "\"status\": \"$1\"" "$d/results.json" && return 0
+  # Keep what the run actually left behind, for diagnosis.
+  echo "latest run $d contains: $(ls "$d" 2>&1 | tr '\n' ' ')"
+  grep -m1 '"status"' "$d/results.json"
+  return 1
+}
 latest_has_share_files() { local d; d=$(latest_run); [[ -f $d/report.txt && -f $d/issue.md && -f $d/issue-url.txt ]]; }
 test_browsers() {
   local pid n=0
