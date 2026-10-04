@@ -145,8 +145,8 @@ class IssueTest(unittest.TestCase):
         self.assertIn("| 2 | ERROR | N/A | FAIL | N/A | N/A | not observed |", english)
 
     def test_title(self):
-        self.assertEqual(share.title("daily", daily_data("en")), "Test report: Omarchy Lab 2.1 daily on Macmini7,1 (HDD)")
-        self.assertEqual(share.title("typical", typical_data("en")), "Test report: Omarchy Lab 2.1 typical on Macmini7,1")
+        self.assertEqual(share.title("daily", daily_data("en")), "Test report: Omarchy Lab 2.2 daily on Macmini7,1 (HDD)")
+        self.assertEqual(share.title("typical", typical_data("en")), "Test report: Omarchy Lab 2.2 typical on Macmini7,1")
 
     def test_offer_writes_issue_and_prints_guidance_in_run_language(self):
         i18n.set_language("ja")
@@ -159,6 +159,9 @@ class IssueTest(unittest.TestCase):
                 path = share.offer(out, "daily", data, rows())
             self.assertEqual(path, out / "issue.md")
             self.assertTrue(path.read_text().startswith("### Summary"))
+            url = (out / "issue-url.txt").read_text().strip()
+            self.assertTrue(url.startswith("https://github.com/Charlie0113-T/omarchy_labs/issues/new?template=test-report.md&title="))
+            self.assertIn("Omarchy%20Lab%202.2%20daily", url)
         guidance = printed.getvalue()
         self.assertIn(i18n.MESSAGES["share.header"][3], guidance)
         self.assertIn("https://github.com/Charlie0113-T/omarchy_labs/issues/new?template=test-report.md&title=Test%20report", guidance)

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.charlie0113-t.omarchy-lab",
+  "name": "Omarchy Lab",
+  "version": "2.2.0",
+  "author": "Charles Tao",
+  "license": "Apache-2.0",
+  "description": "Benchmark your Omarchy machine from the bar: hardware (CPU, memory, disk), AI agent coding, and everyday multitasking with a browser and update load. Tests run only when you pick one, in a terminal you can see and stop. Results can be shared as a GitHub issue. English, 简体中文, 繁體中文 and 日本語.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "plugin/BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Omarchy Lab",
+    "description": "Run Omarchy Lab tests, open results, and share them",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

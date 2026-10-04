@@ -1,4 +1,4 @@
-# Omarchy Lab 2.1
+# Omarchy Lab 2.2
 
 面向 Linux / Omarchy 的三模式测试。Python 标准库实现，普通用户运行。
 下载 omarchy-lab.pyz 后可直接运行，不必解压。它也是标准 ZIP，可解压查看全部源码。

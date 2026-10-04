@@ -9,9 +9,9 @@
 
 **Linux / Omarchy 向けの 3 モード性能テスト：ハードウェア、AI Agent によるプログラミング、日常のマルチタスク**
 
-単一の `.pyz` ファイル · Python 標準ライブラリのみ · 一般ユーザーで実行
+Omarchy のバー用プラグイン、または単一の `.pyz` ファイル · Python 標準ライブラリのみ · 一般ユーザーで実行
 
-![version](https://img.shields.io/badge/version-2.1-2ea44f)
+![version](https://img.shields.io/badge/version-2.2-2ea44f)
 ![python](https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white)
 ![platform](https://img.shields.io/badge/platform-Linux%20%2F%20Omarchy-1793D1?logo=archlinux&logoColor=white)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
@@ -36,7 +36,7 @@
 
 ```sh
 curl -L -o ~/Downloads/omarchy-lab.pyz \
-  https://github.com/Charlie0113-T/omarchy_labs/raw/v2.1/omarchy-lab.pyz
+  https://github.com/Charlie0113-T/omarchy_labs/releases/latest/download/omarchy-lab.pyz
 ```
 
 `.pyz` は展開せずにそのまま実行できます。標準の ZIP でもあるので、`unzip -l omarchy-lab.pyz` で全ソースを確認できます。
@@ -50,6 +50,52 @@ python3 ~/Downloads/omarchy-lab.pyz daily         # 日常テスト
 ```
 
 すべてのオプションは `python3 ~/Downloads/omarchy-lab.pyz --help` で確認できます。
+
+## 🧩 Omarchy プラグイン
+
+Omarchy（Quattro）では、Omarchy Lab をバーに置くこともできます。フラスコのアイコンをクリックすると、テストの開始、最新のレポートや結果フォルダーを開く、最新の結果の共有、実行中のテストの停止ができます。
+
+<p align="center"><img src="preview.png" alt="Omarchy のバーに表示した Omarchy Lab のパネル" width="420"></p>
+
+### インストール
+
+```sh
+omarchy plugin add https://github.com/Charlie0113-T/omarchy_labs
+omarchy plugin enable io.github.charlie0113-t.omarchy-lab
+```
+
+**Setup › Plugins › Add** からも追加できます。プラグインは無効の状態でインストールされるので、先にコードを確認できます。`enable` でアイコンがバーの右側に追加されます。
+
+### 使い方
+
+- テストは選んだときにだけ、表示されたターミナルウィンドウで始まります。そのウィンドウを閉じるか「実行中のテストを停止」を選ぶと、きれいに停止します。テスト用ブラウザが閉じ、一時ファイルが削除され、途中までのレポートが保存されます。
+- 「Agent＋自分のモデル」は、モデルを呼び出す前に Enter での確認を求めます。
+- パネルはシステムの言語に従い、テスト自体はターミナルで言語を尋ねます。
+
+### 更新と削除
+
+```sh
+omarchy plugin update io.github.charlie0113-t.omarchy-lab
+omarchy plugin remove io.github.charlie0113-t.omarchy-lab
+```
+
+削除すると、プラグインを無効にしてからフォルダー `~/.config/omarchy/plugins/io.github.charlie0113-t.omarchy-lab` を削除します。`~/omarchy-lab/` の結果は残るので、不要になったら自分で削除してください。
+
+### プラグインが変更するもの
+
+- `~/.config/omarchy/plugins/io.github.charlie0113-t.omarchy-lab/` にインストールされます。
+- 有効にすると、Omarchy 標準の `plugin enable` によって `~/.config/omarchy/shell.json` のバーのレイアウトに 1 項目が追加されます。無効化または削除すると取り除かれます。
+- テスト結果は `~/omarchy-lab/` に保存され、実行中はホームディレクトリの一時フォルダーを使い、終了後に削除します。インストール時、有効化時、ログイン時に何かが実行されることはなく、プラグイン自体が `sudo` を使うこともありません。
+
+### 依存関係
+
+| 用途 | 必要なもの |
+| --- | --- |
+| すべて | Quattro シェルを備えた Omarchy、Python 3.9 以降（Omarchy に同梱） |
+| 典型テスト | `fio`、`sysbench` |
+| 日常テスト | Chromium または Chrome |
+| Agent＋自分のモデル | 設定済みの [Pi](https://github.com/earendil-works/pi) |
+| 共有ボタン | `wl-copy`、`xdg-open`、`notify-send`（Omarchy に同梱） |
 
 ## 前提条件
 
@@ -136,7 +182,7 @@ python3 ~/Downloads/omarchy-lab.pyz daily --observe-update --seconds 600
 
 ## 🛠️ ソースからビルド
 
-ソースは [`src/`](src/) にあります。`omarchy-lab.pyz` を再ビルドしてテストを実行するには：
+ソースは [`src/`](src/) にあり、Omarchy プラグインはこれを直接実行します。配布用の `dist/omarchy-lab.pyz` をビルドしてテストを実行するには：
 
 ```sh
 python3 scripts/build.py
