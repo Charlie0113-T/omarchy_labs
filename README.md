@@ -1,3 +1,5 @@
+> **Note:** I'm still a student, so I may not be able to respond to issues or ship updates right away. I'll keep maintaining this project in my spare time as best I can.
+
 <div align="center">
 
 <picture>
